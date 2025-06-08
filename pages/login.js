@@ -1,27 +1,44 @@
 import { useState } from 'react';
+import { useRouter } from 'next/router';
 import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import '../firebase';
 
 export default function Login() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const auth = getAuth();
 
   const handleLogin = async () => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      alert("Login successful!");
+      const userCred = await signInWithEmailAndPassword(auth, email, password);
+      const uid = userCred.user.uid;
+      const docRef = doc(db, "users", uid);
+      const docSnap = await getDoc(docRef);
+      const role = docSnap.exists() ? docSnap.data().role : "customer";
+      if (role === "admin") router.push("/admin");
+      else if (role === "vle") router.push("/vle");
+      else router.push("/dashboard");
     } catch (error) {
-      alert(error.message);
+      alert("Login error: " + error.message);
     }
   };
 
   const handleGoogleLogin = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const uid = result.user.uid;
+      const docRef = doc(db, "users", uid);
+      const docSnap = await getDoc(docRef);
+      const role = docSnap.exists() ? docSnap.data().role : "customer";
+      if (role === "admin") router.push("/admin");
+      else if (role === "vle") router.push("/vle");
+      else router.push("/dashboard");
     } catch (error) {
-      alert(error.message);
+      alert("Google login error: " + error.message);
     }
   };
 
